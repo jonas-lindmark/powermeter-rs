@@ -1346,6 +1346,7 @@ dependencies = [
  "pio-proc",
  "portable-atomic",
  "rand",
+ "rust-mqtt",
  "smart-leds",
  "st7789",
  "static_cell",
@@ -1496,6 +1497,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c92f344f63f950ee36cf4080050e4dce850839b9175da38f9d2ffb69b4dbb21"
 dependencies = [
  "crc-any",
+]
+
+[[package]]
+name = "rust-mqtt"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f71160765f368fd9a84e0955e2ddb6d64ac9018fee1c5323354d6d08c816b40"
+dependencies = [
+ "defmt",
+ "embedded-io",
+ "embedded-io-async",
+ "heapless 0.8.0",
+ "rand_core",
 ]
 
 [[package]]
