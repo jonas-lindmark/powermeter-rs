@@ -55,15 +55,16 @@ async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
-    let clm = include_bytes!("../cyw43-firmware/43439A0_clm.bin");
+    // To include cyw43 firmware in build (for uf2 builds)
+    //let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
+    //let clm = include_bytes!("../cyw43-firmware/43439A0_clm.bin");
 
     // To make flashing faster for development, you may want to flash the firmwares independently
     // at hardcoded addresses, instead of baking them into the program with `include_bytes!`:
-    //     probe-rs download 43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
-    //     probe-rs download 43439A0_clm.bin --format bin --chip RP2040 --base-address 0x10140000
-    //let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 230321) };
-    //let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
+    //     probe-rs download cyw43-firmware/43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
+    //     probe-rs download cyw43-firmware/43439A0_clm.bin --format bin --chip RP2040 --base-address 0x10140000
+    let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 230321) };
+    let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
 
     let pwr = Output::new(p.PIN_23, Level::Low);
     let cs = Output::new(p.PIN_25, Level::High);
@@ -182,6 +183,11 @@ async fn main(spawner: Spawner) {
         let mut count: u32 = 0;
         let mut buf = [0u8; 64];
         loop {
+
+            info!("led off!");
+            control.gpio_set(0, false).await;
+            Timer::after(Duration::from_secs(1)).await;
+
             info!("led on!");
             control.gpio_set(0, true).await;
             count = count + 1;
@@ -203,9 +209,6 @@ async fn main(spawner: Spawner) {
                 },
             }
 
-            info!("led off!");
-            control.gpio_set(0, false).await;
-            Timer::after(Duration::from_secs(1)).await;
         }
     }
 }
