@@ -22,13 +22,11 @@ use rust_mqtt::client::client_config::{ClientConfig, MqttVersion};
 use rust_mqtt::packet::v5::publish_packet::QualityOfService;
 use rust_mqtt::packet::v5::reason_codes::ReasonCode;
 use rust_mqtt::utils::rng_generator::CountingRng;
+use serde::Serialize;
+use serde_json_core::to_string;
 use static_cell::StaticCell;
 
 use {defmt_rtt as _, panic_probe as _};
-
-use crate::write_to::write_to::show;
-
-mod write_to;
 
 const WIFI_NETWORK: &str = env!("WIFI_NETWORK");
 const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
@@ -49,6 +47,11 @@ async fn wifi_task(runner: cyw43::Runner<'static, Output<'static>, PioSpi<'stati
 #[embassy_executor::task]
 async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
     stack.run().await
+}
+
+#[derive(Debug, Serialize)]
+struct Payload {
+    data: u32,
 }
 
 #[embassy_executor::main]
@@ -181,9 +184,7 @@ async fn main(spawner: Spawner) {
         }
 
         let mut count: u32 = 0;
-        let mut buf = [0u8; 64];
         loop {
-
             info!("led off!");
             control.gpio_set(0, false).await;
             Timer::after(Duration::from_secs(1)).await;
@@ -192,8 +193,10 @@ async fn main(spawner: Spawner) {
             control.gpio_set(0, true).await;
             count = count + 1;
 
-            let num: &str = show(&mut buf, format_args!("{}", count)).unwrap();
-            match client.send_message(MQTT_TOPIC, num.as_bytes(), QualityOfService::QoS1, false).await {
+            let payload = Payload { data: count };
+
+            let message = to_string::<Payload, 1024>(&payload).unwrap();
+            match client.send_message(MQTT_TOPIC, message.as_bytes(), QualityOfService::QoS1, false).await {
                 Ok(()) => {}
                 Err(mqtt_error) => match mqtt_error {
                     ReasonCode::NetworkError => {
@@ -208,7 +211,6 @@ async fn main(spawner: Spawner) {
                     }
                 },
             }
-
         }
     }
 }
