@@ -8,9 +8,13 @@ use embassy_rp::Peripherals;
 use embassy_rp::peripherals::{DMA_CH0, PIO0};
 use embassy_rp::pio::Pio;
 use embassy_time::{Duration, Timer};
-use heapless::String;
 use static_cell::StaticCell;
-use crate::{Irqs, WIFI_NETWORK, WIFI_PASSWORD};
+
+use crate::Irqs;
+
+const WIFI_NETWORK: &str = env!("WIFI_NETWORK");
+const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
+
 
 #[embassy_executor::task]
 async fn wifi_task(runner: cyw43::Runner<'static, Output<'static>, PioSpi<'static, PIO0, 0, DMA_CH0>>) -> ! {
@@ -22,7 +26,10 @@ async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
     stack.run().await
 }
 
-pub async fn init_wifi(spawner: Spawner, p: Peripherals) -> Result<(Control<'static>, &'static Stack<NetDriver<'static>>), String<256>> {
+pub async fn init_wifi(
+    spawner: Spawner,
+    p: Peripherals,
+) -> (Control<'static>, &'static Stack<NetDriver<'static>>) {
     // To include cyw43 firmware in build (for uf2 builds)
     //let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
     //let clm = include_bytes!("../cyw43-firmware/43439A0_clm.bin");
@@ -89,5 +96,5 @@ pub async fn init_wifi(spawner: Spawner, p: Peripherals) -> Result<(Control<'sta
         }
         Timer::after(Duration::from_millis(500)).await;
     }
-    Ok((control, stack))
+    (control, stack)
 }
