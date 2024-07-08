@@ -1,7 +1,7 @@
 use core::str::FromStr;
 
 use cyw43::NetDriver;
-use defmt::info;
+use defmt::{error, info};
 use embassy_net::{Ipv4Address, Stack};
 use embassy_net::tcp::TcpSocket;
 use embassy_time::{Duration, Timer};
@@ -79,14 +79,14 @@ pub async fn init_mqtt_client(
 
     match client.connect_to_broker().await {
         Ok(()) => { info!("Connected to broker") }
-        Err(mqtt_error) => match mqtt_error {
+        Err(mqtt_error) => return match mqtt_error {
             ReasonCode::NetworkError => {
-                info!("MQTT Network Error");
-                return Err(());
+                error!("MQTT Network Error");
+                Err(())
             }
             _ => {
-                info!("Other MQTT Error: {:?}", mqtt_error);
-                return Err(());
+                error!("Other MQTT Error: {:?}", mqtt_error);
+                Err(())
             }
         },
     }
@@ -99,11 +99,11 @@ pub async fn send_message<'a>(client: &mut MqttClient<'a, TcpSocket<'a>, 5, Coun
         Ok(()) => {}
         Err(mqtt_error) => match mqtt_error {
             ReasonCode::NetworkError => {
-                info!("MQTT Network Error");
+                error!("MQTT Network Error");
                 Timer::after(Duration::from_secs(1)).await;
             }
             _ => {
-                info!("Other MQTT Error: {:?}", mqtt_error);
+                error!("Other MQTT Error: {:?}", mqtt_error);
                 Timer::after(Duration::from_secs(1)).await;
             }
         },
