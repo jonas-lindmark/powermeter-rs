@@ -52,6 +52,7 @@ rand = { version = "0.8.5", default-features = false }
 rust-mqtt = { version = "0.3.0", default-features = false, features = ["defmt", "no_std"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde-json-core = "0.5.1"
+han = { version = "0.2.0-alpha.0", features = ["defmt-03", "embedded-io-async"] }
 
 [profile.release]
 debug = 2
@@ -69,3 +70,4 @@ embassy-futures = { git = "https://github.com/embassy-rs/embassy", rev = "da86c0
 embassy-usb-logger = { git = "https://github.com/embassy-rs/embassy", rev = "da86c086510490602ffdd688760fb59cc7a1e524" }
 cyw43 = { git = "https://github.com/embassy-rs/embassy", rev = "da86c086510490602ffdd688760fb59cc7a1e524" }
 cyw43-pio = { git = "https://github.com/embassy-rs/embassy", rev = "da86c086510490602ffdd688760fb59cc7a1e524" }
+han = { git = "https://github.com/akeamc/han", rev = "d773719798bfdd12693833e7c07435e62f113946" }

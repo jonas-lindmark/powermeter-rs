@@ -4,8 +4,7 @@ use defmt::{info, unwrap};
 use embassy_executor::Spawner;
 use embassy_net::{Config, Stack, StackResources};
 use embassy_rp::gpio::{Level, Output};
-use embassy_rp::Peripherals;
-use embassy_rp::peripherals::{DMA_CH0, PIO0};
+use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::pio::Pio;
 use embassy_time::{Duration, Timer};
 use static_cell::StaticCell;
@@ -15,6 +14,27 @@ use crate::Irqs;
 const WIFI_NETWORK: &str = env!("WIFI_NETWORK");
 const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
 
+pub struct WifiPeripherals {
+    pwr_pin: PIN_23,
+    cs_pin: PIN_25,
+    dio_pin: PIN_24,
+    clk_pin: PIN_29,
+    pio: PIO0,
+    dma_ch: DMA_CH0,
+}
+
+impl WifiPeripherals {
+    pub fn new(
+        pwr_pin: PIN_23,
+        cs_pin: PIN_25,
+        dio_pin: PIN_24,
+        clk_pin: PIN_29,
+        pio: PIO0,
+        dma_ch: DMA_CH0,
+    ) -> Self {
+        Self { pwr_pin, cs_pin, dio_pin, clk_pin, pio, dma_ch }
+    }
+}
 
 #[embassy_executor::task]
 async fn wifi_task(runner: cyw43::Runner<'static, Output<'static>, PioSpi<'static, PIO0, 0, DMA_CH0>>) -> ! {
@@ -22,13 +42,13 @@ async fn wifi_task(runner: cyw43::Runner<'static, Output<'static>, PioSpi<'stati
 }
 
 #[embassy_executor::task]
-async fn net_task(stack: &'static Stack<cyw43::NetDriver<'static>>) -> ! {
+async fn net_task(stack: &'static Stack<NetDriver<'static>>) -> ! {
     stack.run().await
 }
 
 pub async fn init_wifi(
     spawner: Spawner,
-    p: Peripherals,
+    p: WifiPeripherals,
 ) -> (Control<'static>, &'static Stack<NetDriver<'static>>) {
     // To include cyw43 firmware in build (for uf2 builds)
     //let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
@@ -41,10 +61,10 @@ pub async fn init_wifi(
     let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 230321) };
     let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
 
-    let pwr = Output::new(p.PIN_23, Level::Low);
-    let cs = Output::new(p.PIN_25, Level::High);
-    let mut pio = Pio::new(p.PIO0, Irqs);
-    let spi = PioSpi::new(&mut pio.common, pio.sm0, pio.irq0, cs, p.PIN_24, p.PIN_29, p.DMA_CH0);
+    let pwr = Output::new(p.pwr_pin, Level::Low);
+    let cs = Output::new(p.cs_pin, Level::High);
+    let mut pio = Pio::new(p.pio, Irqs);
+    let spi = PioSpi::new(&mut pio.common, pio.sm0, pio.irq0, cs, p.dio_pin, p.clk_pin, p.dma_ch);
 
     static STATE: StaticCell<cyw43::State> = StaticCell::new();
     let state = STATE.init(cyw43::State::new());
