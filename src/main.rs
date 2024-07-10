@@ -1,7 +1,3 @@
-//! This example test the RP Pico W on board LED.
-//!
-//! It does not work with the RP Pico board. See blinky.rs.
-
 #![no_std]
 #![no_main]
 

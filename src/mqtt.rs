@@ -20,8 +20,8 @@ const MQTT_TOPIC: &str = env!("MQTT_TOPIC");
 struct MqttResources {
     rx_buffer: [u8; 4096],
     tx_buffer: [u8; 4096],
-    client_rx_buffer: [u8; 80],
-    client_tx_buffer: [u8; 80],
+    client_rx_buffer: [u8; 2048],
+    client_tx_buffer: [u8; 2048],
 }
 
 pub async fn init_mqtt_client(
@@ -32,8 +32,8 @@ pub async fn init_mqtt_client(
     let resources = &mut *MQTT_RESOURCES.init(MqttResources {
         rx_buffer: [0; 4096],
         tx_buffer: [0; 4096],
-        client_rx_buffer: [0; 80],
-        client_tx_buffer: [0; 80],
+        client_rx_buffer: [0; 2048],
+        client_tx_buffer: [0; 2048],
     });
 
     info!("creating socket");
@@ -71,9 +71,9 @@ pub async fn init_mqtt_client(
     let client = &mut *CLIENT.init(MqttClient::<_, 5, _>::new(
         socket,
         &mut resources.client_tx_buffer,
-        80,
+        2048,
         &mut resources.client_rx_buffer,
-        80,
+        2048,
         config
     ));
 

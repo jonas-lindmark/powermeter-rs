@@ -7,3 +7,11 @@ target = "thumbv6m-none-eabi"        # Cortex-M0 and Cortex-M0+
 
 [env]
 DEFMT_LOG = "info"
+
+# dummy values for required variables
+WIFI_NETWORK = "network_ssid"
+WIFI_PASSWORD = "password"
+MQTT_SERVER_IP = "127.0.0.1"
+MQTT_USER = "user"
+MQTT_PASSWORD = "password"
+MQTT_TOPIC = "topic"
