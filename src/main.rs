@@ -29,7 +29,7 @@ bind_interrupts!(struct Irqs {
 
 #[derive(Debug, Serialize)]
 struct Payload {
-    time: [u8; 16],
+    time: [u8; 32],
 
     energy_active_from_grid_wh: u32,
     energy_reactive_from_grid_varh: u32,
@@ -67,7 +67,7 @@ struct Payload {
 impl Default for Payload {
     fn default() -> Payload {
         Payload {
-            time: [0; 16],
+            time: [0; 32],
             energy_active_from_grid_wh: 0,
             energy_reactive_from_grid_varh: 0,
             energy_active_to_grid_wh: 0,

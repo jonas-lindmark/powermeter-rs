@@ -95,7 +95,7 @@ fn build_payload(telegram: Telegram) -> Payload {
     return payload;
 }
 
-fn format_date(mut buf: [u8; 16], dt: OffsetDateTime) {
+fn format_date(mut buf: [u8; 32], dt: OffsetDateTime) {
     format_no_std::show(
         &mut buf,
         format_args!("{}-{}-{} {}:{}:{}", dt.year(), dt.month(), dt.day(), dt.hour(), dt.minute(), dt.second()),
