@@ -4,6 +4,7 @@ use embassy_rp::uart;
 use embassy_rp::uart::BufferedUartRx;
 use han::{AsyncReader, Direction, Error, Line, Object, Power, Telegram};
 use static_cell::StaticCell;
+use time::OffsetDateTime;
 
 use crate::{Irqs, Payload};
 
@@ -52,32 +53,32 @@ fn build_payload(telegram: Telegram) -> Payload {
     let mut payload = Payload::default();
     telegram.objects().map(|r| r.unwrap()).for_each(|o| {
         match o {
-            Object::DateTime(dt) => payload.time = dt,
+            Object::DateTime(dt) => format_date(payload.time, dt),
             Object::Energy(p, d, v) => match (p, d) {
-                (Power::Reactive, Direction::FromGrid) => payload.energy.from_grid.reactive_varh = v,
-                (Power::Reactive, Direction::ToGrid) => payload.energy.to_grid.reactive_varh = v,
-                (Power::Active, Direction::FromGrid) => payload.energy.from_grid.active_wh = v,
-                (Power::Active, Direction::ToGrid) => payload.energy.to_grid.active_wh = v,
+                (Power::Reactive, Direction::FromGrid) => payload.energy_reactive_from_grid_varh = v,
+                (Power::Reactive, Direction::ToGrid) => payload.energy_reactive_to_grid_varh = v,
+                (Power::Active, Direction::FromGrid) => payload.energy_active_from_grid_wh = v,
+                (Power::Active, Direction::ToGrid) => payload.energy_active_to_grid_wh = v,
             }
             Object::TotalPower(p, d, v) => match (p, d) {
-                (Power::Reactive, Direction::FromGrid) => payload.total_power.from_grid.reactive_var = v,
-                (Power::Reactive, Direction::ToGrid) => payload.total_power.to_grid.reactive_var = v,
-                (Power::Active, Direction::FromGrid) => payload.total_power.from_grid.active_w = v,
-                (Power::Active, Direction::ToGrid) => payload.total_power.to_grid.active_w = v,
+                (Power::Reactive, Direction::FromGrid) => payload.total_power_reactive_from_grid_var = v,
+                (Power::Reactive, Direction::ToGrid) => payload.total_power_reactive_to_grid_var = v,
+                (Power::Active, Direction::FromGrid) => payload.total_power_active_from_grid_w = v,
+                (Power::Active, Direction::ToGrid) => payload.total_power_active_to_grid_w = v,
             }
             Object::Power(l, p, d, v) => match (l, p, d) {
-                (Line::L1, Power::Reactive, Direction::FromGrid) => payload.power_l1.from_grid.reactive_var = v,
-                (Line::L1, Power::Reactive, Direction::ToGrid) => payload.power_l1.to_grid.reactive_var = v,
-                (Line::L1, Power::Active, Direction::FromGrid) => payload.power_l1.from_grid.active_w = v,
-                (Line::L1, Power::Active, Direction::ToGrid) => payload.power_l1.to_grid.active_w = v,
-                (Line::L2, Power::Reactive, Direction::FromGrid) => payload.power_l2.from_grid.reactive_var = v,
-                (Line::L2, Power::Reactive, Direction::ToGrid) => payload.power_l2.to_grid.reactive_var = v,
-                (Line::L2, Power::Active, Direction::FromGrid) => payload.power_l2.from_grid.active_w = v,
-                (Line::L2, Power::Active, Direction::ToGrid) => payload.power_l2.to_grid.active_w = v,
-                (Line::L3, Power::Reactive, Direction::FromGrid) => payload.power_l3.from_grid.reactive_var = v,
-                (Line::L3, Power::Reactive, Direction::ToGrid) => payload.power_l3.to_grid.reactive_var = v,
-                (Line::L3, Power::Active, Direction::FromGrid) => payload.power_l3.from_grid.active_w = v,
-                (Line::L3, Power::Active, Direction::ToGrid) => payload.power_l3.to_grid.active_w = v,
+                (Line::L1, Power::Reactive, Direction::FromGrid) => payload.power_l1_power_reactive_from_grid_var = v,
+                (Line::L1, Power::Reactive, Direction::ToGrid) => payload.power_l1_power_reactive_to_grid_var = v,
+                (Line::L1, Power::Active, Direction::FromGrid) => payload.power_l1_power_active_from_grid_w = v,
+                (Line::L1, Power::Active, Direction::ToGrid) => payload.power_l1_power_active_to_grid_w = v,
+                (Line::L2, Power::Reactive, Direction::FromGrid) => payload.power_l2_power_reactive_from_grid_var = v,
+                (Line::L2, Power::Reactive, Direction::ToGrid) => payload.power_l2_power_reactive_to_grid_var = v,
+                (Line::L2, Power::Active, Direction::FromGrid) => payload.power_l2_power_active_from_grid_w = v,
+                (Line::L2, Power::Active, Direction::ToGrid) => payload.power_l2_power_active_to_grid_w = v,
+                (Line::L3, Power::Reactive, Direction::FromGrid) => payload.power_l3_power_reactive_from_grid_var = v,
+                (Line::L3, Power::Reactive, Direction::ToGrid) => payload.power_l3_power_reactive_to_grid_var = v,
+                (Line::L3, Power::Active, Direction::FromGrid) => payload.power_l3_power_active_from_grid_w = v,
+                (Line::L3, Power::Active, Direction::ToGrid) => payload.power_l3_power_active_to_grid_w = v,
             }
             Object::Voltage(l, v) => match l {
                 Line::L1 => payload.voltage_l1_dv = v,
@@ -92,4 +93,11 @@ fn build_payload(telegram: Telegram) -> Payload {
         }
     });
     return payload;
+}
+
+fn format_date(mut buf: [u8; 16], dt: OffsetDateTime) {
+    format_no_std::show(
+        &mut buf,
+        format_args!("{}-{}-{} {}:{}:{}", dt.year(), dt.month(), dt.day(), dt.hour(), dt.minute(), dt.second()),
+    ).unwrap();
 }
