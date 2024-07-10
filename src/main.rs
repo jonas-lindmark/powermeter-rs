@@ -8,11 +8,11 @@ use embassy_rp::peripherals::{PIO0, UART1};
 use embassy_time::{Duration, Timer};
 use serde::Serialize;
 use serde_json_core::to_string;
+use time::OffsetDateTime;
 
 use crate::mqtt::{init_mqtt_client, send_message};
 use crate::serial::{init_serial, read_telegram, SerialPeripherals};
 use crate::wifi::{init_wifi, WifiPeripherals};
-
 
 use {defmt_rtt as _, panic_probe as _};
 
@@ -29,7 +29,7 @@ bind_interrupts!(struct Irqs {
 
 #[derive(Debug, Serialize)]
 struct Payload {
-    time: [u8; 32],
+    time: OffsetDateTime,
 
     energy_active_from_grid_wh: u32,
     energy_reactive_from_grid_varh: u32,
@@ -67,7 +67,7 @@ struct Payload {
 impl Default for Payload {
     fn default() -> Payload {
         Payload {
-            time: [0; 32],
+            time: OffsetDateTime::from_unix_timestamp(0).unwrap(),
             energy_active_from_grid_wh: 0,
             energy_reactive_from_grid_varh: 0,
             energy_active_to_grid_wh: 0,

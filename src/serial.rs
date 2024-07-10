@@ -53,7 +53,7 @@ fn build_payload(telegram: Telegram) -> Payload {
     let mut payload = Payload::default();
     telegram.objects().map(|r| r.unwrap()).for_each(|o| {
         match o {
-            Object::DateTime(dt) => format_date(payload.time, dt),
+            Object::DateTime(dt) => payload.time = dt,
             Object::Energy(p, d, v) => match (p, d) {
                 (Power::Reactive, Direction::FromGrid) => payload.energy_reactive_from_grid_varh = v,
                 (Power::Reactive, Direction::ToGrid) => payload.energy_reactive_to_grid_varh = v,
