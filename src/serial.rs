@@ -4,7 +4,6 @@ use embassy_rp::uart;
 use embassy_rp::uart::BufferedUartRx;
 use han::{AsyncReader, Direction, Error, Line, Object, Power, Telegram};
 use static_cell::StaticCell;
-use time::OffsetDateTime;
 
 use crate::{Irqs, Payload};
 
@@ -53,7 +52,7 @@ fn build_payload(telegram: Telegram) -> Payload {
     let mut payload = Payload::default();
     telegram.objects().map(|r| r.unwrap()).for_each(|o| {
         match o {
-            Object::DateTime(dt) => payload.time = dt,
+            Object::DateTime(dt) => payload.unix_timestamp = dt.unix_timestamp(),
             Object::Energy(p, d, v) => match (p, d) {
                 (Power::Reactive, Direction::FromGrid) => payload.energy_reactive_from_grid_varh = v,
                 (Power::Reactive, Direction::ToGrid) => payload.energy_reactive_to_grid_varh = v,
@@ -93,11 +92,4 @@ fn build_payload(telegram: Telegram) -> Payload {
         }
     });
     return payload;
-}
-
-fn format_date(mut buf: [u8; 32], dt: OffsetDateTime) {
-    format_no_std::show(
-        &mut buf,
-        format_args!("{}-{}-{} {}:{}:{}", dt.year(), dt.month(), dt.day(), dt.hour(), dt.minute(), dt.second()),
-    ).unwrap();
 }
