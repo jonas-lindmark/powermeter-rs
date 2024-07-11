@@ -1,4 +1,4 @@
-use defmt::{error, info};
+use defmt::error;
 use embassy_rp::peripherals::{PIN_9, UART1};
 use embassy_rp::uart;
 use embassy_rp::uart::BufferedUartRx;
@@ -128,7 +128,6 @@ pub async fn next_message<'a>(
         Error::UnrecognizedReference => error!("UnrecognizedReference"),
     }).ok()?;
 
-    info!("Got telegram: {=str}", telegram.identification);
     return Some(build_message(telegram));
 }
 
