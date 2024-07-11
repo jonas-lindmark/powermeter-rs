@@ -29,6 +29,7 @@ bind_interrupts!(struct Irqs {
 #[derive(Debug, Serialize)]
 struct Payload {
     unix_timestamp: i64,
+    uptime_sec: u32,
 
     energy_active_from_grid_wh: u32,
     energy_reactive_from_grid_varh: u32,
@@ -63,10 +64,17 @@ struct Payload {
 
 }
 
+impl Payload {
+    fn set_uptime(&mut self, started_unix_timestamp: i64) {
+        self.uptime_sec = u32::try_from(self.unix_timestamp - started_unix_timestamp).unwrap();
+    }
+}
+
 impl Default for Payload {
     fn default() -> Payload {
         Payload {
             unix_timestamp: 0,
+            uptime_sec: 0,
             energy_active_from_grid_wh: 0,
             energy_reactive_from_grid_varh: 0,
             energy_active_to_grid_wh: 0,
@@ -106,6 +114,8 @@ async fn main(spawner: Spawner) {
         WifiPeripherals::new(p.PIN_23, p.PIN_25, p.PIN_24, p.PIN_29, p.PIO0, p.DMA_CH0);
     let (mut control, stack) = init_wifi(spawner, wp).await;
 
+    let mut started_unix_timestamp: Option<i64> = None;
+
     info!("Starting main loop");
     loop {
         let client = match init_mqtt_client(stack).await {
@@ -117,7 +127,11 @@ async fn main(spawner: Spawner) {
         let mut han_reader = init_serial(sp).await;
 
         loop {
-            if let Some(payload) = read_telegram(&mut han_reader).await {
+            if let Some(mut payload) = read_telegram(&mut han_reader).await {
+                if started_unix_timestamp.is_none() {
+                    started_unix_timestamp = Some(payload.unix_timestamp);
+                }
+                payload.set_uptime(started_unix_timestamp.unwrap());
                 let message = to_string::<Payload, 1024>(&payload).unwrap();
                 send_message(client, message.as_bytes()).await
             }
@@ -129,3 +143,4 @@ async fn main(spawner: Spawner) {
         }
     }
 }
+
