@@ -62,13 +62,14 @@ fn clear_watchdog() {
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+
+    spawner.spawn(watchdog_task(p.WATCHDOG)).unwrap();
+
     let wp =
         WifiPeripherals::new(p.PIN_23, p.PIN_25, p.PIN_24, p.PIN_29, p.PIO0, p.DMA_CH0);
     let (mut control, stack) = init_wifi(spawner, wp).await;
 
     let mut started_unix_timestamp: Option<i64> = None;
-
-    spawner.spawn(watchdog_task(p.WATCHDOG)).unwrap();
 
     info!("Starting main loop");
     loop {
