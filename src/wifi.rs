@@ -51,13 +51,14 @@ pub async fn init_wifi(
     p: WifiPeripherals,
 ) -> (Control<'static>, &'static Stack<NetDriver<'static>>) {
     // To include cyw43 firmware in build (for uf2 builds)
+
     //let fw = include_bytes!("../cyw43-firmware/43439A0.bin");
     //let clm = include_bytes!("../cyw43-firmware/43439A0_clm.bin");
 
     // To make flashing faster for development, you may want to flash the firmwares independently
     // at hardcoded addresses, instead of baking them into the program with `include_bytes!`:
-    //     probe-rs download cyw43-firmware/43439A0.bin --format bin --chip RP2040 --base-address 0x10100000
-    //     probe-rs download cyw43-firmware/43439A0_clm.bin --format bin --chip RP2040 --base-address 0x10140000
+    //     probe-rs download cyw43-firmware/43439A0.bin --binary-format bin --chip RP2040 --base-address 0x10100000
+    //     probe-rs download cyw43-firmware/43439A0_clm.bin --binary-format bin --chip RP2040 --base-address 0x10140000
     let fw = unsafe { core::slice::from_raw_parts(0x10100000 as *const u8, 230321) };
     let clm = unsafe { core::slice::from_raw_parts(0x10140000 as *const u8, 4752) };
 
@@ -82,11 +83,11 @@ pub async fn init_wifi(
 
     // Init network stack
     static STACK: StaticCell<Stack<cyw43::NetDriver<'static>>> = StaticCell::new();
-    static RESOURCES: StaticCell<StackResources<2>> = StaticCell::new();
+    static RESOURCES: StaticCell<StackResources<5>> = StaticCell::new();
     let stack = &*STACK.init(Stack::new(
         net_device,
         config,
-        RESOURCES.init(StackResources::<2>::new()),
+        RESOURCES.init(StackResources::<5>::new()),
         seed,
     ));
 

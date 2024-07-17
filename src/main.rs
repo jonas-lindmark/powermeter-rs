@@ -13,11 +13,12 @@ use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use embassy_time::{Duration, Timer};
 use serde_json_core::to_string;
 
+#[allow(unused_imports)]
+use {defmt_rtt as _, panic_probe as _};
+
 use crate::han::{HanPeripherals, init_han, Message, next_message};
 use crate::mqtt::{init_mqtt_client, send_message};
 use crate::wifi::{init_wifi, WifiPeripherals};
-
-use {defmt_rtt as _, panic_probe as _};
 
 mod wifi;
 mod mqtt;
@@ -45,8 +46,7 @@ async fn watchdog_task(watchdog_peripheral: WATCHDOG) {
             2..=30 => {
                 watchdog.feed();
                 info!("Watchdog {}", counter);
-
-            },
+            }
             _ => info!("Watchdog {} not feeding", counter),
         }
         Timer::after(Duration::from_millis(1000)).await;
@@ -63,7 +63,7 @@ fn clear_watchdog() {
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    spawner.spawn(watchdog_task(p.WATCHDOG)).unwrap();
+    //spawner.spawn(watchdog_task(p.WATCHDOG)).unwrap();
 
     let wp =
         WifiPeripherals::new(p.PIN_23, p.PIN_25, p.PIN_24, p.PIN_29, p.PIO0, p.DMA_CH0);
