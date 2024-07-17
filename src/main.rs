@@ -68,6 +68,7 @@ async fn main(spawner: Spawner) {
     let wp =
         WifiPeripherals::new(p.PIN_23, p.PIN_25, p.PIN_24, p.PIN_29, p.PIO0, p.DMA_CH0);
     let (mut control, stack) = init_wifi(spawner, wp).await;
+    control.gpio_set(0, true).await;
 
     let mut started_unix_timestamp: Option<i64> = None;
 
@@ -81,6 +82,7 @@ async fn main(spawner: Spawner) {
         let sp = HanPeripherals::new(p.PIN_9, p.UART1);
         let mut han_reader = init_han(sp).await;
 
+        control.gpio_set(0, false).await;
         loop {
             clear_watchdog();
 
