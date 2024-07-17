@@ -35,6 +35,12 @@ bind_interrupts!(struct Irqs {
 #[embassy_executor::task]
 async fn watchdog_task(watchdog_peripheral: WATCHDOG) {
     let mut watchdog = Watchdog::new(watchdog_peripheral);
+
+    // set long timeout initially to not trigger by slow wifi startup
+    watchdog.start(Duration::from_millis(8_300));
+    Timer::after(Duration::from_millis(8_000)).await;
+
+    // set more reasonable timeout of 1.5 sec
     watchdog.start(Duration::from_millis(1_500));
     loop {
         let counter = WATCHDOG_COUNTER.lock(|f| {
@@ -43,7 +49,7 @@ async fn watchdog_task(watchdog_peripheral: WATCHDOG) {
         });
         match counter {
             0..=1 => watchdog.feed(),
-            2..=30 => {
+            2..=10 => {
                 watchdog.feed();
                 info!("Watchdog {}", counter);
             }
@@ -63,7 +69,7 @@ fn clear_watchdog() {
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
 
-    //spawner.spawn(watchdog_task(p.WATCHDOG)).unwrap();
+    spawner.spawn(watchdog_task(p.WATCHDOG)).unwrap();
 
     let wp =
         WifiPeripherals::new(p.PIN_23, p.PIN_25, p.PIN_24, p.PIN_29, p.PIO0, p.DMA_CH0);
