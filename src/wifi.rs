@@ -3,10 +3,12 @@ use cyw43_pio::PioSpi;
 use defmt::{info, unwrap};
 use embassy_executor::Spawner;
 use embassy_net::{Config, Stack, StackResources};
+use embassy_rp::clocks::RoscRng;
 use embassy_rp::gpio::{Level, Output};
 use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
 use embassy_rp::pio::Pio;
 use embassy_time::{Duration, Timer};
+use rand::RngCore;
 use static_cell::StaticCell;
 
 use crate::Irqs;
@@ -79,7 +81,8 @@ pub async fn init_wifi(
 
     let config = Config::dhcpv4(Default::default());
     // Generate random seed
-    let seed = 0x0123_4567_89ab_cdef; // chosen by fair dice roll. guarenteed to be random.
+    let mut rng = RoscRng;
+    let seed = rng.next_u64();
 
     // Init network stack
     static STACK: StaticCell<Stack<cyw43::NetDriver<'static>>> = StaticCell::new();
