@@ -51,6 +51,9 @@ serde-json-core = "0.5.1"
 han = { version = "0.2.0-alpha.0", features = ["defmt-03", "embedded-io-async"] }
 format_no_std = "1.2.0"
 
+assign-resources = { git = "https://github.com/adamgreig/assign-resources", rev = "94ad10e2729afdf0fd5a77cd12e68409a982f58a" }
+
+
 [profile.release]
 debug = 2
 

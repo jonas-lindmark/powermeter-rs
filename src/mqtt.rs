@@ -4,7 +4,7 @@ use cyw43::NetDriver;
 use defmt::{error, info};
 use embassy_net::{Ipv4Address, Stack};
 use embassy_net::tcp::TcpSocket;
-use embassy_time::{Duration, Timer};
+use embassy_time::Duration;
 use rust_mqtt::client::client::MqttClient;
 use rust_mqtt::client::client_config::{ClientConfig, MqttVersion};
 use rust_mqtt::packet::v5::publish_packet::QualityOfService;
@@ -27,7 +27,6 @@ struct MqttResources {
 pub async fn init_mqtt_client(
     stack: &'static Stack<NetDriver<'static>>,
 ) -> Result<&'static mut MqttClient<TcpSocket, 5, CountingRng>, ()> {
-
     static MQTT_RESOURCES: StaticCell<MqttResources> = StaticCell::new();
     let resources = &mut *MQTT_RESOURCES.init(MqttResources {
         rx_buffer: [0; 4096],
@@ -61,11 +60,11 @@ pub async fn init_mqtt_client(
         MqttVersion::MQTTv5,
         CountingRng(20000),
     );
-    config.add_max_subscribe_qos(QualityOfService::QoS1);
-    config.add_client_id("clientId-8rhWgBODCl");
+    config.add_max_subscribe_qos(QualityOfService::QoS0);
+    config.add_client_id("powermeter-rs");
     config.add_username(MQTT_USER);
     config.add_password(MQTT_PASSWORD);
-    config.max_packet_size = 100;
+    config.max_packet_size = 2000;
 
     static CLIENT: StaticCell<MqttClient<TcpSocket, 5, CountingRng>> = StaticCell::new();
     let client = &mut *CLIENT.init(MqttClient::<_, 5, _>::new(
@@ -74,7 +73,7 @@ pub async fn init_mqtt_client(
         2048,
         &mut resources.client_rx_buffer,
         2048,
-        config
+        config,
     ));
 
     match client.connect_to_broker().await {
@@ -94,17 +93,14 @@ pub async fn init_mqtt_client(
 }
 
 pub async fn send_message<'a>(client: &mut MqttClient<'a, TcpSocket<'a>, 5, CountingRng>, message: &[u8]) {
-
-    match client.send_message(MQTT_TOPIC, message, QualityOfService::QoS1, false).await {
+    match client.send_message(MQTT_TOPIC, message, QualityOfService::QoS0, false).await {
         Ok(()) => {}
         Err(mqtt_error) => match mqtt_error {
             ReasonCode::NetworkError => {
                 error!("MQTT Network Error");
-                Timer::after(Duration::from_secs(1)).await;
             }
             _ => {
                 error!("Other MQTT Error: {:?}", mqtt_error);
-                Timer::after(Duration::from_secs(1)).await;
             }
         },
     }

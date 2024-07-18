@@ -5,38 +5,16 @@ use embassy_executor::Spawner;
 use embassy_net::{Config, Stack, StackResources};
 use embassy_rp::clocks::RoscRng;
 use embassy_rp::gpio::{Level, Output};
-use embassy_rp::peripherals::{DMA_CH0, PIN_23, PIN_24, PIN_25, PIN_29, PIO0};
+use embassy_rp::peripherals::{DMA_CH0, PIO0};
 use embassy_rp::pio::Pio;
 use embassy_time::{Duration, Timer};
 use rand::RngCore;
 use static_cell::StaticCell;
 
-use crate::Irqs;
+use crate::{Irqs, WifiResources};
 
 const WIFI_NETWORK: &str = env!("WIFI_NETWORK");
 const WIFI_PASSWORD: &str = env!("WIFI_PASSWORD");
-
-pub struct WifiPeripherals {
-    pwr_pin: PIN_23,
-    cs_pin: PIN_25,
-    dio_pin: PIN_24,
-    clk_pin: PIN_29,
-    pio: PIO0,
-    dma_ch: DMA_CH0,
-}
-
-impl WifiPeripherals {
-    pub fn new(
-        pwr_pin: PIN_23,
-        cs_pin: PIN_25,
-        dio_pin: PIN_24,
-        clk_pin: PIN_29,
-        pio: PIO0,
-        dma_ch: DMA_CH0,
-    ) -> Self {
-        Self { pwr_pin, cs_pin, dio_pin, clk_pin, pio, dma_ch }
-    }
-}
 
 #[embassy_executor::task]
 async fn wifi_task(runner: cyw43::Runner<'static, Output<'static>, PioSpi<'static, PIO0, 0, DMA_CH0>>) -> ! {
@@ -50,7 +28,7 @@ async fn net_task(stack: &'static Stack<NetDriver<'static>>) -> ! {
 
 pub async fn init_wifi(
     spawner: Spawner,
-    p: WifiPeripherals,
+    p: WifiResources,
 ) -> (Control<'static>, &'static Stack<NetDriver<'static>>) {
     // To include cyw43 firmware in build (for uf2 builds)
 
@@ -76,7 +54,7 @@ pub async fn init_wifi(
 
     control.init(clm).await;
     control
-        .set_power_management(cyw43::PowerManagementMode::PowerSave)
+        .set_power_management(cyw43::PowerManagementMode::None)
         .await;
 
     let config = Config::dhcpv4(Default::default());

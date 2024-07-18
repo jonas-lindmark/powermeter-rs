@@ -27,6 +27,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "assign-resources"
+version = "0.4.0"
+source = "git+https://github.com/adamgreig/assign-resources?rev=94ad10e2729afdf0fd5a77cd12e68409a982f58a#94ad10e2729afdf0fd5a77cd12e68409a982f58a"
+
+[[package]]
 name = "atomic-polyfill"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1228,6 +1233,7 @@ checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 name = "powermeter-rs"
 version = "0.1.0"
 dependencies = [
+ "assign-resources",
  "byte-slice-cast",
  "cortex-m",
  "cortex-m-rt",

@@ -1,12 +1,12 @@
 use defmt::error;
-use embassy_rp::peripherals::{PIN_9, UART1};
+use embassy_rp::peripherals::UART1;
 use embassy_rp::uart;
 use embassy_rp::uart::BufferedUartRx;
 use han::{AsyncReader, Direction, Error, Line, Object, Power, Telegram};
 use serde::Serialize;
 use static_cell::StaticCell;
 
-use crate::Irqs;
+use crate::{HanResources, Irqs};
 
 #[derive(Debug, Serialize)]
 pub struct Message {
@@ -91,19 +91,8 @@ impl Default for Message {
     }
 }
 
-pub struct HanPeripherals {
-    rx_pin: PIN_9,
-    uart: UART1,
-}
-
-impl HanPeripherals {
-    pub fn new(rx_pin: PIN_9, uart: UART1) -> Self {
-        Self { rx_pin, uart }
-    }
-}
-
 pub async fn init_han(
-    p: HanPeripherals,
+    p: HanResources,
 ) -> &'static mut AsyncReader<BufferedUartRx<'static, UART1>> {
     static RX_BUF: StaticCell<[u8; 1024]> = StaticCell::new();
     let rx_buf = &mut RX_BUF.init([0; 1024])[..];

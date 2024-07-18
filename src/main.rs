@@ -3,10 +3,11 @@
 
 use core::cell::RefCell;
 
-use defmt::*;
+use assign_resources::assign_resources;
+use defmt::info;
 use embassy_executor::Spawner;
 use embassy_rp::{bind_interrupts, pio, uart};
-use embassy_rp::peripherals::{PIO0, UART1, WATCHDOG};
+use embassy_rp::peripherals::{self, PIO0, UART1};
 use embassy_rp::watchdog::Watchdog;
 use embassy_sync::blocking_mutex::Mutex;
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
@@ -16,9 +17,9 @@ use serde_json_core::to_string;
 #[allow(unused_imports)]
 use {defmt_rtt as _, panic_probe as _};
 
-use crate::han::{HanPeripherals, init_han, Message, next_message};
+use crate::han::{init_han, Message, next_message};
 use crate::mqtt::{init_mqtt_client, send_message};
-use crate::wifi::{init_wifi, WifiPeripherals};
+use crate::wifi::init_wifi;
 
 mod wifi;
 mod mqtt;
@@ -31,10 +32,28 @@ bind_interrupts!(struct Irqs {
     UART1_IRQ => uart::BufferedInterruptHandler<UART1>;
 });
 
+assign_resources! {
+    wifi: WifiResources {
+        pwr_pin: PIN_23,
+        cs_pin: PIN_25,
+        dio_pin: PIN_24,
+        clk_pin: PIN_29,
+        pio: PIO0,
+        dma_ch: DMA_CH0,
+    }
+    han: HanResources {
+        rx_pin: PIN_9,
+        uart: UART1,
+    }
+    watchdog: WatchdogResources {
+        watchdog: WATCHDOG,
+    }
+}
+
 
 #[embassy_executor::task]
-async fn watchdog_task(watchdog_peripheral: WATCHDOG) {
-    let mut watchdog = Watchdog::new(watchdog_peripheral);
+async fn watchdog_task(watchdog: WatchdogResources) {
+    let mut watchdog = Watchdog::new(watchdog.watchdog);
 
     // set long timeout initially to not trigger by slow wifi startup
     watchdog.start(Duration::from_millis(8_300));
@@ -68,45 +87,40 @@ fn clear_watchdog() {
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
+    let r = split_resources!(p);
 
-    spawner.spawn(watchdog_task(p.WATCHDOG)).unwrap();
 
-    let wp =
-        WifiPeripherals::new(p.PIN_23, p.PIN_25, p.PIN_24, p.PIN_29, p.PIO0, p.DMA_CH0);
-    let (mut control, stack) = init_wifi(spawner, wp).await;
+    spawner.spawn(watchdog_task(r.watchdog)).unwrap();
+
+    let (mut control, stack) = init_wifi(spawner, r.wifi).await;
     control.gpio_set(0, true).await;
 
     let mut started_unix_timestamp: Option<i64> = None;
 
-    info!("Starting main loop");
+    let client = match init_mqtt_client(stack).await {
+        Ok(c) => c,
+        Err(()) => panic!("Failed to start MQTT client")
+    };
+
+    let mut han_reader = init_han(r.han).await;
+
+    control.gpio_set(0, false).await;
     loop {
-        let client = match init_mqtt_client(stack).await {
-            Ok(c) => c,
-            Err(()) => continue
-        };
+        clear_watchdog();
 
-        let sp = HanPeripherals::new(p.PIN_9, p.UART1);
-        let mut han_reader = init_han(sp).await;
-
-        control.gpio_set(0, false).await;
-        loop {
-            clear_watchdog();
-
-            if let Some(mut message) = next_message(&mut han_reader).await {
-                info!("Got message with timestamp {}", message.unix_timestamp());
-                if started_unix_timestamp.is_none() {
-                    started_unix_timestamp = Some(message.unix_timestamp());
-                }
-                message.set_uptime(started_unix_timestamp.unwrap());
-                let string_message = to_string::<Message, 2048>(&message).unwrap();
-                send_message(client, string_message.as_bytes()).await
+        if let Some(mut message) = next_message(&mut han_reader).await {
+            info!("Got message with timestamp {}", message.unix_timestamp());
+            if started_unix_timestamp.is_none() {
+                started_unix_timestamp = Some(message.unix_timestamp());
             }
-
-            control.gpio_set(0, true).await;
-            Timer::after(Duration::from_millis(50)).await;
-
-            control.gpio_set(0, false).await;
+            message.set_uptime(started_unix_timestamp.unwrap());
+            let string_message = to_string::<Message, 2048>(&message).unwrap();
+            send_message(client, string_message.as_bytes()).await
         }
+
+        //control.gpio_set(0, true).await;
+        //Timer::after(Duration::from_millis(50)).await;
+        //control.gpio_set(0, false).await;
     }
 }
 
