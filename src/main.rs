@@ -7,6 +7,7 @@ use assign_resources::assign_resources;
 use defmt::info;
 use embassy_executor::Spawner;
 use embassy_rp::{bind_interrupts, pio, uart};
+use embassy_rp::gpio::{Level, Output};
 use embassy_rp::peripherals::{self, PIO0, UART1};
 use embassy_rp::watchdog::Watchdog;
 use embassy_sync::blocking_mutex::Mutex;
@@ -47,6 +48,10 @@ assign_resources! {
     }
     watchdog: WatchdogResources {
         watchdog: WATCHDOG,
+    }
+    led: LedResources {
+        green: PIN_2,
+        red: PIN_3,
     }
 }
 
@@ -89,6 +94,10 @@ async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
     let r = split_resources!(p);
 
+    let mut led_green = Output::new(r.led.green, Level::Low);
+    let mut led_red = Output::new(r.led.red, Level::Low);
+
+    led_red.set_high();
 
     spawner.spawn(watchdog_task(r.watchdog)).unwrap();
 
@@ -105,6 +114,9 @@ async fn main(spawner: Spawner) {
     let mut han_reader = init_han(r.han).await;
 
     control.gpio_set(0, false).await;
+
+    led_red.set_low();
+
     loop {
         clear_watchdog();
 
@@ -118,9 +130,9 @@ async fn main(spawner: Spawner) {
             send_message(client, string_message.as_bytes()).await
         }
 
-        //control.gpio_set(0, true).await;
-        //Timer::after(Duration::from_millis(50)).await;
-        //control.gpio_set(0, false).await;
+        led_green.set_high();
+        Timer::after(Duration::from_millis(50)).await;
+        led_green.set_low();
     }
 }
 
