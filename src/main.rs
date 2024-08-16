@@ -73,7 +73,7 @@ async fn watchdog_task(watchdog: WatchdogResources) {
         });
         match counter {
             0..=1 => watchdog.feed(),
-            2..=10 => {
+            2..=35 => {
                 watchdog.feed();
                 info!("Watchdog {}", counter);
             }
@@ -127,12 +127,17 @@ async fn main(spawner: Spawner) {
             }
             message.set_uptime(started_unix_timestamp.unwrap());
             let string_message = to_string::<Message, 2048>(&message).unwrap();
-            send_message(client, string_message.as_bytes()).await
+            send_message(client, string_message.as_bytes()).await;
+            flash_led(&mut led_green).await;
+        } else {
+            flash_led(&mut led_red).await;
         }
-
-        led_green.set_high();
-        Timer::after(Duration::from_millis(50)).await;
-        led_green.set_low();
     }
+}
+
+async fn flash_led(led: &mut Output<'_>) {
+    led.set_high();
+    Timer::after(Duration::from_millis(50)).await;
+    led.set_low();
 }
 
