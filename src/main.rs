@@ -137,7 +137,7 @@ async fn main(spawner: Spawner) {
 
 async fn flash_led(led: &mut Output<'_>) {
     led.set_high();
-    Timer::after(Duration::from_millis(50)).await;
+    Timer::after(Duration::from_millis(10)).await;
     led.set_low();
 }
 
