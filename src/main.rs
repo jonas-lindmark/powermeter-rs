@@ -117,9 +117,7 @@ async fn main(spawner: Spawner) {
 
     led_red.set_low();
 
-    loop {
-        clear_watchdog();
-
+    'main: loop {
         if let Some(mut message) = next_message(&mut han_reader).await {
             info!("Got message with timestamp {}", message.unix_timestamp());
             if started_unix_timestamp.is_none() {
@@ -127,11 +125,13 @@ async fn main(spawner: Spawner) {
             }
             message.set_uptime(started_unix_timestamp.unwrap());
             let string_message = to_string::<Message, 2048>(&message).unwrap();
-            send_message(client, string_message.as_bytes()).await;
-            flash_led(&mut led_green).await;
-        } else {
-            flash_led(&mut led_red).await;
+            if let Ok(_) = send_message(client, string_message.as_bytes()).await {
+                clear_watchdog();
+                flash_led(&mut led_green).await;
+                continue 'main;
+            }
         }
+        flash_led(&mut led_red).await;
     }
 }
 

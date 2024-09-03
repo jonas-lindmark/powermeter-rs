@@ -92,16 +92,22 @@ pub async fn init_mqtt_client(
     Ok(client)
 }
 
-pub async fn send_message<'a>(client: &mut MqttClient<'a, TcpSocket<'a>, 5, CountingRng>, message: &[u8]) {
+pub async fn send_message<'a>(
+    client: &mut MqttClient<'a, TcpSocket<'a>, 5, CountingRng>,
+    message: &[u8],
+) -> Result<(), ()> {
     match client.send_message(MQTT_TOPIC, message, QualityOfService::QoS0, false).await {
-        Ok(()) => {}
-        Err(mqtt_error) => match mqtt_error {
-            ReasonCode::NetworkError => {
-                error!("MQTT Network Error");
-            }
-            _ => {
-                error!("Other MQTT Error: {:?}", mqtt_error);
-            }
+        Ok(()) => { Ok(()) }
+        Err(mqtt_error) => {
+            match mqtt_error {
+                ReasonCode::NetworkError => {
+                    error!("MQTT Network Error");
+                }
+                _ => {
+                    error!("Other MQTT Error: {:?}", mqtt_error);
+                }
+            };
+            Err(())
         },
     }
 }
