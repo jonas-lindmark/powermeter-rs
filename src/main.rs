@@ -2,6 +2,7 @@
 #![no_main]
 
 use core::cell::RefCell;
+use core::future::Future;
 
 use assign_resources::assign_resources;
 use defmt::info;
@@ -101,8 +102,7 @@ async fn main(spawner: Spawner) {
 
     spawner.spawn(watchdog_task(r.watchdog)).unwrap();
 
-    let (mut control, stack) = init_wifi(spawner, r.wifi).await;
-    control.gpio_set(0, true).await;
+    let (_control, stack) = init_wifi(spawner, r.wifi).await;
 
     let mut started_unix_timestamp: Option<i64> = None;
 
@@ -113,11 +113,9 @@ async fn main(spawner: Spawner) {
 
     let mut han_reader = init_han(r.han).await;
 
-    control.gpio_set(0, false).await;
-
     led_red.set_low();
 
-    'main: loop {
+    loop {
         if let Some(mut message) = next_message(&mut han_reader).await {
             info!("Got message with timestamp {}", message.unix_timestamp());
             if started_unix_timestamp.is_none() {
@@ -127,17 +125,23 @@ async fn main(spawner: Spawner) {
             let string_message = to_string::<Message, 2048>(&message).unwrap();
             if let Ok(_) = send_message(client, string_message.as_bytes()).await {
                 clear_watchdog();
-                flash_led(&mut led_green).await;
-                continue 'main;
+                led_green.flash().await;
+                continue;
             }
         }
-        flash_led(&mut led_red).await;
+        led_red.flash().await;
     }
 }
 
-async fn flash_led(led: &mut Output<'_>) {
-    led.set_high();
-    Timer::after(Duration::from_millis(10)).await;
-    led.set_low();
+pub trait FlashingLed {
+    fn flash(&mut self) -> impl Future<Output=()> + Send;
 }
 
+
+impl FlashingLed for Output<'_> {
+    async fn flash(&mut self) {
+        self.set_high();
+        Timer::after(Duration::from_millis(10)).await;
+        self.set_low();
+    }
+}

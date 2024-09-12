@@ -56,6 +56,7 @@ pub async fn init_wifi(
     control
         .set_power_management(cyw43::PowerManagementMode::None)
         .await;
+    control.gpio_set(0, true).await;
 
     let config = Config::dhcpv4(Default::default());
     // Generate random seed
@@ -98,5 +99,7 @@ pub async fn init_wifi(
         }
         Timer::after(Duration::from_millis(500)).await;
     }
+    control.gpio_set(0, false).await;
+
     (control, stack)
 }
