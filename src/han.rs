@@ -11,7 +11,7 @@ use crate::{HanResources, Irqs};
 #[derive(Debug, Serialize)]
 pub struct Message {
     unix_timestamp: i64,
-    uptime_sec: u32,
+    uptime_min: u32,
 
     energy_active_from_grid_wh: u32,
     energy_reactive_from_grid_varh: u32,
@@ -48,7 +48,8 @@ pub struct Message {
 
 impl Message {
     pub fn set_uptime(&mut self, started_unix_timestamp: i64) {
-        self.uptime_sec = u32::try_from(self.unix_timestamp - started_unix_timestamp).unwrap();
+        let mins = (self.unix_timestamp - started_unix_timestamp) / 60;
+        self.uptime_min = u32::try_from(mins).unwrap();
     }
 
     pub fn unix_timestamp(&self) -> i64 {
@@ -60,7 +61,7 @@ impl Default for Message {
     fn default() -> Message {
         Message {
             unix_timestamp: 0,
-            uptime_sec: 0,
+            uptime_min: 0,
             energy_active_from_grid_wh: 0,
             energy_reactive_from_grid_varh: 0,
             energy_active_to_grid_wh: 0,
